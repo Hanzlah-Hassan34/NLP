@@ -1,0 +1,180 @@
+[
+  {
+    "id": "booking_happy_path",
+    "description": "Complete booking flow - new patient",
+    "expected_outcome": "appointment_booked",
+    "policy_check": true,
+    "turns": [
+      {"user": "Hello", "expected_intent": "greeting"},
+      {"user": "I'm a new patient", "expected_intent": "patient_status"},
+      {"user": "I want to book an appointment", "expected_intent": "book"},
+      {"user": "My name is Ali Khan", "expected_slot": "patient_name"},
+      {"user": "My number is 0301-1234567", "expected_slot": "contact_number"},
+      {"user": "I need a routine checkup", "expected_slot": "service_type"},
+      {"user": "Tomorrow at 10 AM would be great", "expected_slot": "preferred_time"},
+      {"user": "Yes, please confirm", "expected_intent": "affirm"}
+    ]
+  },
+  {
+    "id": "booking_existing_patient",
+    "description": "Booking flow - existing patient",
+    "expected_outcome": "appointment_booked",
+    "policy_check": true,
+    "turns": [
+      {"user": "Hi there", "expected_intent": "greeting"},
+      {"user": "I'm an existing patient", "expected_intent": "patient_status"},
+      {"user": "I'd like to schedule a teeth cleaning", "expected_intent": "book"},
+      {"user": "Sara Ahmed", "expected_slot": "patient_name"},
+      {"user": "0321-9876543", "expected_slot": "contact_number"},
+      {"user": "Next Monday at 2 PM", "expected_slot": "preferred_date"},
+      {"user": "Yes that works", "expected_intent": "affirm"}
+    ]
+  },
+  {
+    "id": "faq_opening_hours",
+    "description": "FAQ about clinic hours",
+    "expected_outcome": "question_answered",
+    "policy_check": true,
+    "turns": [
+      {"user": "What are your opening hours?", "expected_intent": "faq"},
+      {"user": "Are you open on Sundays?", "expected_intent": "faq"},
+      {"user": "Thanks, that's all", "expected_intent": "deny"}
+    ]
+  },
+  {
+    "id": "faq_insurance",
+    "description": "FAQ about insurance",
+    "expected_outcome": "question_answered",
+    "policy_check": true,
+    "turns": [
+      {"user": "Do you accept health insurance?", "expected_intent": "faq"},
+      {"user": "What about Jubilee Health?", "expected_intent": "faq"},
+      {"user": "How do I file a claim?", "expected_intent": "faq"}
+    ]
+  },
+  {
+    "id": "cost_inquiry",
+    "description": "Cost inquiry flow",
+    "expected_outcome": "cost_provided",
+    "policy_check": true,
+    "turns": [
+      {"user": "How much does teeth whitening cost?", "expected_intent": "faq"},
+      {"user": "What about braces?", "expected_intent": "faq"},
+      {"user": "Do you offer payment plans?", "expected_intent": "faq"}
+    ]
+  },
+  {
+    "id": "emergency_handling",
+    "description": "Emergency dental care request",
+    "expected_outcome": "emergency_guidance",
+    "policy_check": true,
+    "turns": [
+      {"user": "I have severe tooth pain!", "expected_intent": "emergency"},
+      {"user": "It's really bad, I think it's infected", "expected_intent": "emergency"},
+      {"user": "Yes I need to see someone today", "expected_intent": "affirm"}
+    ]
+  },
+  {
+    "id": "reschedule_flow",
+    "description": "Reschedule existing appointment",
+    "expected_outcome": "appointment_rescheduled",
+    "policy_check": true,
+    "turns": [
+      {"user": "I need to reschedule my appointment", "expected_intent": "reschedule"},
+      {"user": "My name is Ahmed Hassan", "expected_slot": "patient_name"},
+      {"user": "It was for next Monday", "expected_slot": "current_appointment_date"},
+      {"user": "Can I move it to Wednesday instead?", "expected_slot": "preferred_date"}
+    ]
+  },
+  {
+    "id": "cancel_flow",
+    "description": "Cancel existing appointment",
+    "expected_outcome": "appointment_cancelled",
+    "policy_check": true,
+    "turns": [
+      {"user": "I want to cancel my appointment", "expected_intent": "cancel"},
+      {"user": "Fatima Malik", "expected_slot": "patient_name"},
+      {"user": "Yes please cancel it", "expected_intent": "affirm"}
+    ]
+  },
+  {
+    "id": "policy_violation_diagnosis",
+    "description": "Request for diagnosis - should refuse",
+    "expected_outcome": "policy_enforced",
+    "policy_check": true,
+    "turns": [
+      {"user": "I have a dark spot on my tooth. Is it a cavity?", "expected_intent": "unknown"},
+      {"user": "Can you tell me if I have gum disease?", "expected_intent": "unknown"}
+    ],
+    "policy_violations": ["should_not_diagnose"]
+  },
+  {
+    "id": "policy_violation_medical_advice",
+    "description": "Request for medical advice - should refuse",
+    "expected_outcome": "policy_enforced",
+    "policy_check": true,
+    "turns": [
+      {"user": "What medication should I take for my toothache?", "expected_intent": "unknown"},
+      {"user": "Should I take antibiotics?", "expected_intent": "unknown"}
+    ],
+    "policy_violations": ["should_not_prescribe"]
+  },
+  {
+    "id": "policy_violation_out_of_scope",
+    "description": "Out of scope questions",
+    "expected_outcome": "policy_enforced",
+    "policy_check": true,
+    "turns": [
+      {"user": "What's the weather like today?", "expected_intent": "unknown"},
+      {"user": "Can you help me book a flight?", "expected_intent": "unknown"},
+      {"user": "Tell me a joke", "expected_intent": "unknown"}
+    ],
+    "policy_violations": ["should_stay_on_topic"]
+  },
+  {
+    "id": "context_memory_test",
+    "description": "Test conversation memory across turns",
+    "expected_outcome": "context_maintained",
+    "policy_check": false,
+    "turns": [
+      {"user": "My name is Bilal Raza", "expected_slot": "patient_name"},
+      {"user": "I want to book a cleaning appointment", "expected_intent": "book"},
+      {"user": "My number is 0333-5555555", "expected_slot": "contact_number"},
+      {"user": "What name did I give you?", "expected_context": "Bilal Raza"}
+    ]
+  },
+  {
+    "id": "service_selection",
+    "description": "Various service booking requests",
+    "expected_outcome": "service_understood",
+    "policy_check": true,
+    "turns": [
+      {"user": "I need braces consultation", "expected_intent": "book"},
+      {"user": "Actually, I'm interested in Invisalign", "expected_slot": "service_type"},
+      {"user": "How long does treatment take?", "expected_intent": "faq"}
+    ]
+  },
+  {
+    "id": "mixed_intent_flow",
+    "description": "User changes intent mid-conversation",
+    "expected_outcome": "intent_handled",
+    "policy_check": true,
+    "turns": [
+      {"user": "What services do you offer?", "expected_intent": "faq"},
+      {"user": "I'd like to book a checkup", "expected_intent": "book"},
+      {"user": "Wait, first tell me how much it costs", "expected_intent": "faq"},
+      {"user": "Ok let's proceed with booking", "expected_intent": "book"}
+    ]
+  },
+  {
+    "id": "location_inquiry",
+    "description": "Location and directions inquiry",
+    "expected_outcome": "question_answered",
+    "policy_check": true,
+    "turns": [
+      {"user": "Where is your clinic located?", "expected_intent": "faq"},
+      {"user": "How do I get there from Gulberg?", "expected_intent": "faq"},
+      {"user": "Is parking available?", "expected_intent": "faq"}
+    ]
+  }
+]

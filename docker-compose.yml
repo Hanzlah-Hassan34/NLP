@@ -1,0 +1,18 @@
+services:
+  dentabot-phase4:
+    build: .
+    container_name: dentabot-phase4
+    ports:
+      - "8000:8000"
+    environment:
+      # DENTABOT_MODEL_PATH: /app/models/mistral-7b-instruct-v0.1.Q4_K_M.gguf
+      # DENTABOT_MODEL_PATH: /app/models/Qwen3-4B-Q4_K_M.gguf
+      DENTABOT_MODEL_PATH: /app/models/qwen2.5-1.5b-instruct-q4_k_m.gguf
+      DENTABOT_N_CTX: 2048
+      DENTABOT_GPU_LAYERS: 0
+      DENTABOT_TTS_MODEL_PATH: /app/models/piper/en_US-lessac-medium.onnx
+      DENTABOT_TTS_CONFIG_PATH: /app/models/piper/en_US-lessac-medium.onnx.json
+    volumes:
+      - ./models:/app/models
+      - ./vector_db:/app/vector_db
+    restart: unless-stopped

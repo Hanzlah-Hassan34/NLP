@@ -1,0 +1,110 @@
+{
+  "info": {
+    "_postman_id": "9e6ab7f0-7fa8-4f35-a93e-9f4a5f7f2f66",
+    "name": "DentaBot Phase IV",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Phase IV microservice tests for HTTP and WebSocket chat APIs."
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/healthz",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "healthz"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const data = pm.response.json();",
+              "pm.test('Service healthy', function () { pm.expect(data.status).to.eql('ok'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HTTP Chat",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"demo-http-001\",\n  \"message\": \"I want to book an appointment this Saturday at 10 AM\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/chat",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "chat"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const data = pm.response.json();",
+              "pm.test('Has reply', function () { pm.expect(data.reply).to.be.a('string').and.not.empty; });",
+              "pm.test('Has session and state', function () {",
+              "  pm.expect(data.session_id).to.be.a('string');",
+              "  pm.expect(data.state).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "WebSocket Chat Instructions",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{wsUrl}}/ws/chat",
+          "host": [
+            "{{wsUrl}}"
+          ],
+          "path": [
+            "ws",
+            "chat"
+          ]
+        },
+        "description": "In Postman WebSocket tab, connect to {{wsUrl}}/ws/chat then send:\n1) {\"type\":\"ping\"}\n2) {\"type\":\"chat\",\"session_id\":\"demo-ws-001\",\"message\":\"Hello\",\"stream\":true}\n3) {\"type\":\"chat\",\"session_id\":\"demo-ws-001\",\"message\":\"What are your hours?\",\"stream\":true}\n4) {\"type\":\"reset\",\"session_id\":\"demo-ws-001\"}\nExpect event sequence: ack -> start -> token* -> complete"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "wsUrl",
+      "value": "ws://localhost:8000"
+    }
+  ]
+}

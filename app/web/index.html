@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DentaBot Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260305c" />
+</head>
+<body>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <div class="ambient ambient-c"></div>
+  <div class="mesh-overlay"></div>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-wrap">
+        <div class="brand-mark">DB</div>
+        <div>
+          <div class="brand">DentaBot</div>
+          <div class="brand-sub">BrightSmile Concierge</div>
+        </div>
+      </div>
+      <button id="new-chat-btn" class="btn primary">+ New Chat</button>
+      <button id="reset-btn" class="btn">Reset Current Session</button>
+      <div class="status-row">
+        <span>Status</span>
+        <span id="ws-status" class="status-dot offline">Offline</span>
+      </div>
+      <div id="session-list" class="session-list"></div>
+    </aside>
+
+    <main class="chat-panel">
+      <header class="chat-header">
+        <h1>BrightSmile Assistant</h1>
+        <p>Appointments, support, and clinic information in real time</p>
+        <div class="chip-row">
+          <span class="chip">Book Visit</span>
+          <span class="chip">Reschedule</span>
+          <span class="chip">Insurance Info</span>
+          <span class="chip">Emergency Support</span>
+        </div>
+      </header>
+
+      <section id="chat-window" class="chat-window"></section>
+
+      <section class="voice-panel">
+        <button id="record-btn" class="btn">Start Voice</button>
+        <button id="stop-btn" class="btn" disabled>Stop</button>
+        <span id="voice-status" class="voice-status">Voice idle</span>
+      </section>
+
+      <form id="composer" class="composer">
+        <textarea id="message-input" rows="1" placeholder="Type naturally: 'I need a check-up this Saturday around 3 PM'" required></textarea>
+        <button id="send-btn" class="btn primary" type="submit">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <template id="message-template">
+    <div class="message-row">
+      <div class="avatar"></div>
+      <div class="bubble"></div>
+    </div>
+  </template>
+
+  <script src="/assets/app.js?v=20260305c" defer></script>
+</body>
+</html>

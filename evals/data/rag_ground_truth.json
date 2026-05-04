@@ -1,0 +1,152 @@
+[
+  {
+    "question": "What are the clinic opening hours?",
+    "ground_truth": "Monday-Wednesday 8:00 AM – 6:00 PM, Thursday 8:00 AM – 7:00 PM, Friday 8:00 AM – 5:00 PM, Saturday 9:00 AM – 2:00 PM, Sunday Closed",
+    "relevant_docs": ["03_opening_hours_and_holiday_schedule.md"]
+  },
+  {
+    "question": "How can I book an appointment?",
+    "ground_truth": "You can book online via the website, call (555) 123-4567, walk in, or use DentaBot chatbot",
+    "relevant_docs": ["04_appointment_booking_process.md"]
+  },
+  {
+    "question": "What insurance providers do you accept?",
+    "ground_truth": "Delta Dental, Cigna, Aetna, MetLife, UnitedHealthcare, Guardian, Humana, Blue Cross Blue Shield, Principal Financial, Ameritas",
+    "relevant_docs": ["27_accepted_insurance_providers.md"]
+  },
+  {
+    "question": "How does teeth whitening work?",
+    "ground_truth": "In-office whitening uses high-concentration bleaching gel activated by light, takes 60-90 minutes. Take-home kits use custom trays worn 30-60 minutes daily for 1-2 weeks",
+    "relevant_docs": ["22_teeth_whitening_procedures.md"]
+  },
+  {
+    "question": "What is the cancellation policy?",
+    "ground_truth": "Cancel at least 24 hours in advance. Late cancellations or no-shows may incur a small fee",
+    "relevant_docs": ["04_appointment_booking_process.md"]
+  },
+  {
+    "question": "What should I expect on my first visit?",
+    "ground_truth": "Complete medical history forms, dental exam, X-rays if needed, and consultation about treatment options",
+    "relevant_docs": ["33_first_visit_expectations.md"]
+  },
+  {
+    "question": "Do you offer emergency dental care?",
+    "ground_truth": "Yes, call emergency hotline at (555) 123-4567 for after-hours emergencies",
+    "relevant_docs": ["26_emergency_dental_care.md", "03_opening_hours_and_holiday_schedule.md"]
+  },
+  {
+    "question": "What is a root canal treatment?",
+    "ground_truth": "A procedure to remove infected pulp from inside the tooth, clean the canal, and seal it to save the tooth",
+    "relevant_docs": ["12_root_canal_treatment.md"]
+  },
+  {
+    "question": "How do dental implants work?",
+    "ground_truth": "A titanium post is surgically placed in the jawbone, acts as artificial root, then a crown is attached after healing",
+    "relevant_docs": ["16_dental_implants_overview.md"]
+  },
+  {
+    "question": "What are veneers?",
+    "ground_truth": "Thin shells of porcelain or composite bonded to front of teeth to improve appearance, color, shape, or alignment",
+    "relevant_docs": ["23_veneers_and_smile_makeovers.md"]
+  },
+  {
+    "question": "How do I care for my teeth after extraction?",
+    "ground_truth": "Bite on gauze, avoid rinsing for 24 hours, eat soft foods, avoid straws, take prescribed pain medication",
+    "relevant_docs": ["53_aftercare_for_tooth_extraction.md"]
+  },
+  {
+    "question": "What payment methods do you accept?",
+    "ground_truth": "Cash, credit cards, debit cards, and financing options available",
+    "relevant_docs": ["29_self_pay_and_payment_methods.md"]
+  },
+  {
+    "question": "Do you offer sedation for anxious patients?",
+    "ground_truth": "Yes, we offer nitrous oxide (laughing gas), oral sedation, and IV sedation for anxious patients",
+    "relevant_docs": ["35_sedation_and_anxiety_support.md"]
+  },
+  {
+    "question": "What is Invisalign?",
+    "ground_truth": "Clear removable aligners that gradually straighten teeth, alternative to traditional braces",
+    "relevant_docs": ["19_invisalign_and_clear_aligners.md"]
+  },
+  {
+    "question": "How often should I get a dental checkup?",
+    "ground_truth": "Every 6 months for routine exams and professional cleaning",
+    "relevant_docs": ["08_routine_dental_checkups.md"]
+  },
+  {
+    "question": "What causes gum disease?",
+    "ground_truth": "Plaque buildup, poor oral hygiene, smoking, diabetes, and genetic factors",
+    "relevant_docs": ["24_gum_disease_treatment.md", "47_preventing_gum_disease.md"]
+  },
+  {
+    "question": "Where is the clinic located?",
+    "ground_truth": "Check the clinic location and directions document for address and map",
+    "relevant_docs": ["02_clinic_location_and_directions.md"]
+  },
+  {
+    "question": "How do I prepare my child for a dental visit?",
+    "ground_truth": "Talk positively about dentist, read books about dental visits, bring comfort items, schedule morning appointments",
+    "relevant_docs": ["36_pediatric_patient_preparation.md", "20_pediatric_dentistry_services.md"]
+  },
+  {
+    "question": "What are dental crowns?",
+    "ground_truth": "Caps placed over damaged teeth to restore shape, size, strength, and appearance",
+    "relevant_docs": ["13_dental_crowns_and_bridges.md", "50_how_dental_crown_is_made_and_placed.md"]
+  },
+  {
+    "question": "How do I prevent cavities?",
+    "ground_truth": "Brush twice daily, floss daily, limit sugary foods, use fluoride toothpaste, get regular dental checkups",
+    "relevant_docs": ["46_preventing_tooth_decay.md", "40_daily_oral_hygiene_routines.md"]
+  },
+  {
+    "question": "Do you offer financing options?",
+    "ground_truth": "Yes, we offer payment plans and work with financing companies for larger treatments",
+    "relevant_docs": ["32_financing_and_installment_options.md"]
+  },
+  {
+    "question": "What is professional teeth cleaning?",
+    "ground_truth": "Removal of plaque, tartar, and stains by dental hygienist, includes scaling, polishing, and sometimes fluoride treatment",
+    "relevant_docs": ["09_professional_teeth_cleaning.md"]
+  },
+  {
+    "question": "What should I do in a dental emergency?",
+    "ground_truth": "Call the emergency hotline, control bleeding, save knocked-out teeth in milk, apply cold compress for swelling",
+    "relevant_docs": ["58_what_to_do_in_dental_emergency.md", "26_emergency_dental_care.md"]
+  },
+  {
+    "question": "How do braces work?",
+    "ground_truth": "Metal brackets bonded to teeth connected by wires apply gentle pressure to gradually move teeth into alignment",
+    "relevant_docs": ["18_orthodontic_treatment_braces.md", "51_benefits_of_orthodontic_treatment.md"]
+  },
+  {
+    "question": "What is the proper brushing technique?",
+    "ground_truth": "Hold brush at 45-degree angle, use short gentle strokes, brush all surfaces, brush for 2 minutes twice daily",
+    "relevant_docs": ["41_brushing_techniques_and_tools.md"]
+  },
+  {
+    "question": "Do you provide teleconsultation?",
+    "ground_truth": "Yes, virtual consultations available for initial assessments and follow-ups",
+    "relevant_docs": ["39_teleconsultation_and_virtual_visits.md"]
+  },
+  {
+    "question": "What are dentures?",
+    "ground_truth": "Removable replacements for missing teeth, available as full or partial dentures",
+    "relevant_docs": ["17_dentures_and_partial_dentures.md"]
+  },
+  {
+    "question": "How do I reschedule my appointment?",
+    "ground_truth": "Call the clinic, use online portal, or ask DentaBot to reschedule",
+    "relevant_docs": ["59_how_to_reschedule_or_cancel_appointments.md"]
+  },
+  {
+    "question": "What is the family plan discount?",
+    "ground_truth": "Discounts available for families with multiple members receiving treatment",
+    "relevant_docs": ["31_family_plan_discounts.md"]
+  },
+  {
+    "question": "How do I use mouthwash properly?",
+    "ground_truth": "Rinse for 30-60 seconds after brushing and flossing, do not eat or drink for 30 minutes after",
+    "relevant_docs": ["43_mouthwash_use_and_recommendations.md"]
+  }
+]
