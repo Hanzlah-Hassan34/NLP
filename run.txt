@@ -1,28 +1,16 @@
-# DentaBot Evaluation - Quick Run Commands
-# ==========================================
+﻿# DentaBot Evaluation - Quick Run Commands
 
-# STEP 1: Start the server (Terminal 1)
+# 1. Start the API server.
 python -m uvicorn app.main:app --port 8000
 
-# STEP 2: Run pytest tool tests (Terminal 2) - 58/59 pass
+# 2. Run focused tool tests.
 python -m pytest evals/test_tools_crm.py evals/test_tools_appointment.py evals/test_tools_weather.py evals/test_tools_cost.py -v
 
-# STEP 3: Run RAG evaluation (RAGAS basic metrics)
+# 3. Run the quick RAG smoke evaluation.
 python quick_eval.py
 
-# STEP 4: Run Locust HTTP load test - 5.3 req/s, 0% failures
-locust -f evals/locustfile.py --host=http://localhost:8000 --headless -u 5 -r 1 -t 30s DentaBotHttpUser
+# 4. Run Locust load testing.
+locust -f evals/locust_ws.py --host=http://localhost:8000 --headless -u 5 -r 1 -t 30s DentaBotHttpUser
 
-# ==========================================
-# OPTIONAL: API-DEPENDENT TESTS (require API keys in .env)
-# ==========================================
-
-# STEP 5: Run DeepEval (requires GOOGLE_API_KEY or OPENAI_API_KEY)
-python -m pytest evals/test_deepeval.py -v
-
-# STEP 6: Run LangSmith (requires LANGCHAIN_API_KEY)
-python evals/langsmith_eval.py
-
-# ==========================================
-# RESULTS: evals/reports/EVALUATION_REPORT.md
-# ==========================================
+# For the Locust web UI, omit the headless flags and open http://localhost:8089.
+locust -f evals/locust_ws.py --host=http://localhost:8000

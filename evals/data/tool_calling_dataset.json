@@ -1,0 +1,215 @@
+{
+  "description": "Utterances mapped to tools that the engine should trigger. Used to compute LLM/orchestrator tool-selection precision and recall, and false-positive rate (negatives).",
+  "tools_universe": [
+    "crm_lookup",
+    "crm_upsert",
+    "appointment_slots",
+    "appointment_booking",
+    "appointment_lookup",
+    "appointment_cancel",
+    "dental_cost",
+    "weather"
+  ],
+  "cases": [
+    {
+      "id": "cost_whitening",
+      "utterance": "How much does teeth whitening cost?",
+      "expected_tools": ["dental_cost"],
+      "category": "cost"
+    },
+    {
+      "id": "cost_braces",
+      "utterance": "What is the price of braces treatment?",
+      "expected_tools": ["dental_cost"],
+      "category": "cost"
+    },
+    {
+      "id": "cost_implant",
+      "utterance": "How much do dental implants cost?",
+      "expected_tools": ["dental_cost"],
+      "category": "cost"
+    },
+    {
+      "id": "cost_cleaning",
+      "utterance": "What's the fee for a routine cleaning?",
+      "expected_tools": ["dental_cost"],
+      "category": "cost"
+    },
+    {
+      "id": "cost_root_canal",
+      "utterance": "How expensive is a root canal?",
+      "expected_tools": ["dental_cost"],
+      "category": "cost"
+    },
+    {
+      "id": "weather_basic",
+      "utterance": "What's the weather like in Lahore today?",
+      "expected_tools": ["weather"],
+      "category": "weather"
+    },
+    {
+      "id": "weather_rain",
+      "utterance": "Is it going to rain this afternoon?",
+      "expected_tools": ["weather"],
+      "category": "weather"
+    },
+    {
+      "id": "weather_travel",
+      "utterance": "Should I travel to the clinic given the weather?",
+      "expected_tools": ["weather"],
+      "category": "weather"
+    },
+    {
+      "id": "weather_storm",
+      "utterance": "Is there a storm warning right now?",
+      "expected_tools": ["weather"],
+      "category": "weather"
+    },
+    {
+      "id": "weather_hot",
+      "utterance": "Is it hot outside?",
+      "expected_tools": ["weather"],
+      "category": "weather"
+    },
+    {
+      "id": "crm_name",
+      "utterance": "My name is Alice Walker.",
+      "expected_tools": ["crm_upsert"],
+      "category": "crm"
+    },
+    {
+      "id": "crm_phone",
+      "utterance": "Please update my phone number to 0300-1112233.",
+      "expected_tools": ["crm_upsert"],
+      "category": "crm"
+    },
+    {
+      "id": "crm_full_intro",
+      "utterance": "Hi, I'm Bilal Raza and my contact is 0321-4445566.",
+      "expected_tools": ["crm_upsert"],
+      "category": "crm"
+    },
+    {
+      "id": "appt_book_intent",
+      "utterance": "I'd like to book an appointment for tomorrow at 11 AM.",
+      "expected_tools": ["appointment_slots"],
+      "category": "appointment_book",
+      "preconditions": {
+        "patient_status": "new"
+      }
+    },
+    {
+      "id": "appt_show_slots",
+      "utterance": "What slots do you have available next week?",
+      "expected_tools": ["appointment_slots"],
+      "category": "appointment_book",
+      "preconditions": {
+        "patient_status": "new"
+      }
+    },
+    {
+      "id": "appt_reschedule",
+      "utterance": "I need to reschedule my appointment.",
+      "expected_tools": ["appointment_lookup", "appointment_slots"],
+      "category": "appointment_reschedule",
+      "preconditions": {
+        "patient_status": "existing",
+        "patient_name": "Sara Ahmed"
+      }
+    },
+    {
+      "id": "appt_cancel",
+      "utterance": "I want to cancel my appointment.",
+      "expected_tools": ["appointment_lookup"],
+      "category": "appointment_cancel",
+      "preconditions": {
+        "patient_status": "existing",
+        "patient_name": "Sara Ahmed"
+      }
+    },
+    {
+      "id": "neg_greeting",
+      "utterance": "Hello there.",
+      "expected_tools": [],
+      "category": "negative"
+    },
+    {
+      "id": "neg_thanks",
+      "utterance": "Thanks, that's all.",
+      "expected_tools": [],
+      "category": "negative"
+    },
+    {
+      "id": "neg_faq_hours",
+      "utterance": "What are your opening hours?",
+      "expected_tools": [],
+      "category": "negative"
+    },
+    {
+      "id": "neg_faq_location",
+      "utterance": "Where is the clinic?",
+      "expected_tools": [],
+      "category": "negative"
+    },
+    {
+      "id": "neg_small_talk",
+      "utterance": "How are you doing today?",
+      "expected_tools": [],
+      "category": "negative"
+    },
+    {
+      "id": "neg_service_question",
+      "utterance": "Do you do orthodontic treatment?",
+      "expected_tools": [],
+      "category": "negative"
+    },
+    {
+      "id": "cost_with_service",
+      "utterance": "How much is a filling?",
+      "expected_tools": ["dental_cost"],
+      "category": "cost"
+    },
+    {
+      "id": "cost_estimate",
+      "utterance": "Can you give me an estimate for veneers?",
+      "expected_tools": ["dental_cost"],
+      "category": "cost"
+    },
+    {
+      "id": "cost_extraction",
+      "utterance": "What does an extraction charge?",
+      "expected_tools": ["dental_cost"],
+      "category": "cost"
+    },
+    {
+      "id": "weather_general",
+      "utterance": "How is the weather?",
+      "expected_tools": ["weather"],
+      "category": "weather"
+    },
+    {
+      "id": "weather_cold",
+      "utterance": "Is it cold today?",
+      "expected_tools": ["weather"],
+      "category": "weather"
+    },
+    {
+      "id": "neg_insurance",
+      "utterance": "Do you accept Jubilee Health insurance?",
+      "expected_tools": [],
+      "category": "negative"
+    },
+    {
+      "id": "neg_emergency",
+      "utterance": "I have severe tooth pain, what should I do?",
+      "expected_tools": [],
+      "category": "negative"
+    },
+    {
+      "id": "neg_kids",
+      "utterance": "Do you treat children?",
+      "expected_tools": [],
+      "category": "negative"
+    }
+  ]
+}

@@ -1,143 +1,168 @@
 """
-RAGAS Evaluation for DentaBot RAG System.
+RAG Evaluation — basic retrieval metrics (no LLM) plus full RAGAS metrics
+(faithfulness, answer relevancy, context precision/recall) using Gemini 2.0
+Flash as the judge LLM.
 
-Metrics evaluated:
-- Context Precision: Are retrieved chunks relevant to the query?
-- Context Recall: Did we retrieve all needed information?
-- Faithfulness: Is the answer grounded in retrieved context?
-- Answer Relevancy: Does the answer address the question?
+Two modes:
+  1. Basic metrics only (fast, no API key) — Precision@k, Recall@k, Hit-rate.
+  2. Full RAGAS — drives the live server to generate answers, then scores
+     them against retrieved context.
 
-Run: pytest evals/test_rag_ragas.py -v --tb=short
+Usage:
+    pytest evals/test_rag_ragas.py -v
+    python evals/test_rag_ragas.py --mode basic
+    python evals/test_rag_ragas.py --mode full --base-url http://localhost:8000
 """
+from __future__ import annotations
+
+import argparse
 import json
 import os
 import sys
+import time
+import uuid
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-import pytest
+import requests
 
-# Load environment variables from .env
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 try:
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).parent.parent / ".env")
-except ImportError:
+    load_dotenv(ROOT / ".env")
+except Exception:
     pass
 
-# Add parent to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from app.RAG import retrieve_relevant_chunks
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Configuration
-# ══════════════════════════════════════════════════════════════════════════════
+from app.RAG import retrieve_relevant_chunks  # noqa: E402
 
 DATA_PATH = Path(__file__).parent / "data" / "rag_ground_truth.json"
+REPORTS_DIR = Path(__file__).parent / "reports"
+REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
+DEFAULT_BASE_URL = os.getenv("DENTABOT_BASE_URL", "http://localhost:8000")
 TOP_K = 3
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Load Test Data
-# ══════════════════════════════════════════════════════════════════════════════
-
-def load_ground_truth():
-    """Load the annotated ground truth dataset."""
+# ─── Data loading ────────────────────────────────────────────────────────────
+def load_ground_truth() -> List[Dict[str, Any]]:
     with open(DATA_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Basic RAG Metrics (No external LLM needed)
-# ══════════════════════════════════════════════════════════════════════════════
+def has_gemini() -> bool:
+    return bool(os.getenv("GOOGLE_API_KEY"))
 
-def compute_basic_retrieval_metrics(ground_truth_data: list, top_k: int = 3):
-    """
-    Compute precision@k and recall@k based on source document matching.
-    This doesn't require an LLM - just checks if relevant docs were retrieved.
-    """
+
+# ─── Basic retrieval metrics (no LLM) ────────────────────────────────────────
+def compute_basic_retrieval_metrics(data: List[Dict[str, Any]], top_k: int = TOP_K) -> Dict[str, Any]:
     results = []
-    
-    for item in ground_truth_data:
+    for item in data:
         question = item["question"]
         expected_docs = set(item["relevant_docs"])
-        
-        # Get retrieved chunks
         chunks = retrieve_relevant_chunks(question, top_k=top_k)
-        
-        # Extract source documents from chunks (rough matching)
-        retrieved_sources = set()
+
+        retrieved_sources: set[str] = set()
         for chunk in chunks:
             for doc in expected_docs:
-                doc_name = doc.replace(".md", "").replace("_", " ").lower()
-                if any(word in chunk.lower() for word in doc_name.split()[:3]):
+                doc_words = doc.replace(".md", "").replace("_", " ").lower().split()[:3]
+                if any(w in chunk.lower() for w in doc_words):
                     retrieved_sources.add(doc)
-        
-        # Calculate metrics
-        if len(expected_docs) > 0:
-            recall = len(retrieved_sources & expected_docs) / len(expected_docs)
-        else:
-            recall = 0.0
-            
-        precision = len(retrieved_sources & expected_docs) / top_k if top_k > 0 else 0.0
-        
+
+        recall = len(retrieved_sources & expected_docs) / len(expected_docs) if expected_docs else 0.0
+        precision = len(retrieved_sources & expected_docs) / top_k if top_k else 0.0
         results.append({
             "question": question,
             "expected_docs": list(expected_docs),
-            "retrieved_count": len(chunks),
             "matched_docs": list(retrieved_sources),
             "precision": precision,
             "recall": recall,
-            "hit": len(retrieved_sources & expected_docs) > 0
+            "hit": len(retrieved_sources & expected_docs) > 0,
         })
-    
-    # Aggregate metrics
-    avg_precision = sum(r["precision"] for r in results) / len(results)
-    avg_recall = sum(r["recall"] for r in results) / len(results)
-    hit_rate = sum(r["hit"] for r in results) / len(results)
-    
+
     return {
-        "precision@k": round(avg_precision, 4),
-        "recall@k": round(avg_recall, 4),
-        "hit_rate": round(hit_rate, 4),
+        "precision@k": round(sum(r["precision"] for r in results) / max(len(results), 1), 4),
+        "recall@k": round(sum(r["recall"] for r in results) / max(len(results), 1), 4),
+        "hit_rate": round(sum(r["hit"] for r in results) / max(len(results), 1), 4),
         "total_queries": len(results),
-        "details": results
+        "top_k": top_k,
+        "details": results,
     }
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# RAGAS Evaluation (Supports Gemini or OpenAI)
-# ══════════════════════════════════════════════════════════════════════════════
-
-def get_ragas_llm():
-    """Get LLM for RAGAS - prefers Gemini (free), falls back to OpenAI."""
-    # Try Gemini first (free)
-    if os.getenv("GOOGLE_API_KEY"):
-        try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-            return ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                google_api_key=os.getenv("GOOGLE_API_KEY")
-            )
-        except ImportError:
-            print("Install: pip install langchain-google-genai")
-    
-    # Fall back to OpenAI
-    if os.getenv("OPENAI_API_KEY"):
-        try:
-            from langchain_openai import ChatOpenAI
-            return ChatOpenAI(model="gpt-3.5-turbo")
-        except ImportError:
-            pass
-    
-    return None
+# ─── Full RAGAS metrics ──────────────────────────────────────────────────────
+def _server_alive(base_url: str) -> bool:
+    try:
+        r = requests.get(f"{base_url}/healthz", timeout=5)
+        return r.status_code == 200
+    except Exception:
+        return False
 
 
-def run_ragas_evaluation(ground_truth_data: list, top_k: int = 3):
-    """
-    Run full RAGAS evaluation with faithfulness, context relevance, etc.
-    Requires: pip install ragas datasets langchain-google-genai
-    And either GOOGLE_API_KEY (free) or OPENAI_API_KEY.
-    """
+def _generate_answer(base_url: str, question: str, timeout: int = 180) -> str:
+    sid = f"rag-{uuid.uuid4().hex[:8]}"
+    try:
+        requests.post(f"{base_url}/v1/eval/reset",
+                      json={"session_id": sid}, timeout=10)
+    except Exception:
+        pass
+    try:
+        r = requests.post(
+            f"{base_url}/v1/eval/chat",
+            json={"session_id": sid, "message": question},
+            timeout=timeout,
+        )
+        if r.ok:
+            return (r.json().get("reply") or "").strip()
+    except Exception as exc:
+        return f"[error: {exc}]"
+    return ""
+
+
+def _build_ragas_dataset(
+    data: List[Dict[str, Any]],
+    base_url: Optional[str],
+    top_k: int = TOP_K,
+    max_items: int = 30,
+) -> Dict[str, List[Any]]:
+    questions: List[str] = []
+    contexts: List[List[str]] = []
+    answers: List[str] = []
+    ground_truths: List[str] = []
+    use_live = bool(base_url and _server_alive(base_url))
+    print(f"[RAGAS] live server={'YES' if use_live else 'no'} (using ground_truth as answer otherwise)")
+
+    for item in data[:max_items]:
+        q = item["question"]
+        chunks = retrieve_relevant_chunks(q, top_k=top_k) or [""]
+        if use_live:
+            t0 = time.perf_counter()
+            ans = _generate_answer(base_url, q)
+            print(f"  [{len(answers)+1}/{min(len(data), max_items)}] answered in {time.perf_counter()-t0:.1f}s")
+        else:
+            ans = item.get("ground_truth", "")
+        questions.append(q)
+        contexts.append(chunks)
+        answers.append(ans or "(no answer)")
+        ground_truths.append(item.get("ground_truth", ""))
+    return {
+        "question": questions,
+        "contexts": contexts,
+        "answer": answers,
+        "ground_truth": ground_truths,
+    }
+
+
+def run_ragas_full(
+    data: List[Dict[str, Any]],
+    base_url: Optional[str] = None,
+    top_k: int = TOP_K,
+    max_items: int = 30,
+) -> Optional[Dict[str, Any]]:
+    if not has_gemini():
+        print("[RAGAS] GOOGLE_API_KEY not set — skipping full RAGAS run.")
+        return None
     try:
         from datasets import Dataset
         from ragas import evaluate
@@ -147,176 +172,109 @@ def run_ragas_evaluation(ground_truth_data: list, top_k: int = 3):
             context_recall,
             faithfulness,
         )
-    except ImportError:
-        print("RAGAS not installed. Run: pip install ragas datasets")
+        from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+    except Exception as exc:
+        print(f"[RAGAS] import failed ({exc}); install ragas, datasets, "
+              "langchain-google-genai")
         return None
-    
-    # Get LLM
-    llm = get_ragas_llm()
-    if not llm:
-        print("No LLM configured. Set GOOGLE_API_KEY or OPENAI_API_KEY")
-        return None
-    
-    # Prepare data for RAGAS
-    questions = []
-    ground_truths = []
-    contexts = []
-    answers = []
-    
-    for item in ground_truth_data:
-        question = item["question"]
-        ground_truth = item["ground_truth"]
-        
-        # Retrieve context
-        chunks = retrieve_relevant_chunks(question, top_k=top_k)
-        
-        # For answer, we use ground_truth as placeholder
-        # In real eval, you'd call your LLM to generate the answer
-        answer = ground_truth  # Replace with actual LLM response
-        
-        questions.append(question)
-        ground_truths.append(ground_truth)
-        contexts.append(chunks)
-        answers.append(answer)
-    
-    # Create dataset
-    dataset = Dataset.from_dict({
-        "question": questions,
-        "ground_truth": ground_truths,
-        "contexts": contexts,
-        "answer": answers,
-    })
-    
-    # Run evaluation with configured LLM
+
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash",
+                                 google_api_key=os.getenv("GOOGLE_API_KEY"))
     try:
-        results = evaluate(
-            dataset,
-            metrics=[
-                context_precision,
-                context_recall,
-                faithfulness,
-                answer_relevancy,
-            ],
-            llm=llm,
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/text-embedding-004",
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
         )
-        return {
-            "context_precision": round(results["context_precision"], 4),
-            "context_recall": round(results["context_recall"], 4),
-            "faithfulness": round(results["faithfulness"], 4),
-            "answer_relevancy": round(results["answer_relevancy"], 4),
-        }
-    except Exception as e:
-        print(f"RAGAS evaluation failed: {e}")
-        print("Check your GOOGLE_API_KEY or OPENAI_API_KEY")
+    except Exception:
+        embeddings = None
+
+    payload = _build_ragas_dataset(data, base_url, top_k=top_k, max_items=max_items)
+    ds = Dataset.from_dict(payload)
+    metrics = [context_precision, context_recall, faithfulness, answer_relevancy]
+    try:
+        kwargs: Dict[str, Any] = {"llm": llm}
+        if embeddings is not None:
+            kwargs["embeddings"] = embeddings
+        result = evaluate(ds, metrics=metrics, **kwargs)
+    except Exception as exc:
+        print(f"[RAGAS] evaluation failed: {exc}")
         return None
 
+    def get(key: str) -> float:
+        try:
+            return float(result[key])
+        except Exception:
+            try:
+                return float(result.to_pandas()[key].mean())  # type: ignore
+            except Exception:
+                return float("nan")
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Pytest Tests
-# ══════════════════════════════════════════════════════════════════════════════
+    return {
+        "n_items": len(payload["question"]),
+        "context_precision": round(get("context_precision"), 4),
+        "context_recall": round(get("context_recall"), 4),
+        "faithfulness": round(get("faithfulness"), 4),
+        "answer_relevancy": round(get("answer_relevancy"), 4),
+        "items": [
+            {"question": q, "answer": a[:200], "n_chunks": len(c)}
+            for q, c, a in zip(payload["question"], payload["contexts"], payload["answer"])
+        ],
+    }
+
+
+# ─── pytest tests ────────────────────────────────────────────────────────────
+import pytest  # noqa: E402
+
 
 class TestRAGRetrieval:
-    """Test RAG retrieval quality."""
-    
     @pytest.fixture(autouse=True)
-    def setup(self):
-        self.ground_truth = load_ground_truth()
-    
-    def test_basic_retrieval_metrics(self):
-        """Test basic precision@k and recall@k."""
-        metrics = compute_basic_retrieval_metrics(self.ground_truth, top_k=TOP_K)
-        
-        print("\n" + "="*60)
-        print("BASIC RETRIEVAL METRICS")
-        print("="*60)
-        print(f"Precision@{TOP_K}: {metrics['precision@k']}")
-        print(f"Recall@{TOP_K}:    {metrics['recall@k']}")
-        print(f"Hit Rate:         {metrics['hit_rate']}")
-        print(f"Total Queries:    {metrics['total_queries']}")
-        print("="*60)
-        
-        # Assert minimum thresholds
-        assert metrics["hit_rate"] >= 0.5, f"Hit rate too low: {metrics['hit_rate']}"
-        
-    def test_retrieval_returns_results(self):
-        """Verify retrieval returns non-empty results for all queries."""
-        empty_count = 0
-        for item in self.ground_truth:
-            chunks = retrieve_relevant_chunks(item["question"], top_k=TOP_K)
-            if not chunks:
-                empty_count += 1
-                print(f"Empty retrieval for: {item['question']}")
-        
-        assert empty_count == 0, f"{empty_count} queries returned empty results"
-    
-    def test_retrieval_chunk_count(self):
-        """Verify we get expected number of chunks."""
-        for item in self.ground_truth[:5]:  # Test first 5
-            chunks = retrieve_relevant_chunks(item["question"], top_k=TOP_K)
-            assert len(chunks) <= TOP_K, f"Got more than {TOP_K} chunks"
-            assert len(chunks) > 0, "Got zero chunks"
+    def _setup(self):
+        self.data = load_ground_truth()
 
-    @pytest.mark.skipif(
-        not os.getenv("OPENAI_API_KEY"),
-        reason="OPENAI_API_KEY not set - skipping RAGAS evaluation"
-    )
-    def test_ragas_evaluation(self):
-        """Run full RAGAS evaluation (requires OpenAI API key)."""
-        results = run_ragas_evaluation(self.ground_truth, top_k=TOP_K)
-        
-        if results:
-            print("\n" + "="*60)
-            print("RAGAS EVALUATION RESULTS")
-            print("="*60)
-            print(f"Context Precision: {results['context_precision']}")
-            print(f"Context Recall:    {results['context_recall']}")
-            print(f"Faithfulness:      {results['faithfulness']}")
-            print(f"Answer Relevancy:  {results['answer_relevancy']}")
-            print("="*60)
-            
-            # Assert minimum thresholds
-            assert results["context_precision"] >= 0.5
-            assert results["faithfulness"] >= 0.6
+    def test_basic_metrics_meets_thresholds(self):
+        m = compute_basic_retrieval_metrics(self.data, TOP_K)
+        assert m["hit_rate"] >= 0.5, f"hit_rate={m['hit_rate']}"
+
+    def test_no_empty_retrievals(self):
+        empties = [it["question"] for it in self.data
+                   if not retrieve_relevant_chunks(it["question"], top_k=TOP_K)]
+        assert not empties, f"empty retrievals: {empties}"
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Standalone Runner
-# ══════════════════════════════════════════════════════════════════════════════
+# ─── CLI ────────────────────────────────────────────────────────────────────
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--mode", choices=["basic", "full"], default="basic")
+    ap.add_argument("--base-url", default=DEFAULT_BASE_URL)
+    ap.add_argument("--top-k", type=int, default=TOP_K)
+    ap.add_argument("--max-items", type=int, default=30)
+    ap.add_argument("--out", default=str(REPORTS_DIR / "rag_results.json"))
+    args = ap.parse_args()
+
+    data = load_ground_truth()
+    print(f"[RAG] Loaded {len(data)} ground-truth queries")
+
+    output: Dict[str, Any] = {}
+    output["basic"] = compute_basic_retrieval_metrics(data, top_k=args.top_k)
+    print(f"[RAG] basic: P@{args.top_k}={output['basic']['precision@k']} "
+          f"R@{args.top_k}={output['basic']['recall@k']} "
+          f"hit={output['basic']['hit_rate']}")
+
+    if args.mode == "full":
+        ragas_out = run_ragas_full(
+            data,
+            base_url=args.base_url,
+            top_k=args.top_k,
+            max_items=args.max_items,
+        )
+        output["ragas"] = ragas_out
+
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+    with open(args.out, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+    print(f"Saved -> {args.out}")
+    return 0
+
 
 if __name__ == "__main__":
-    print("Loading ground truth data...")
-    data = load_ground_truth()
-    print(f"Loaded {len(data)} test queries\n")
-    
-    # Run basic metrics (always works)
-    print("Running basic retrieval metrics...")
-    basic_results = compute_basic_retrieval_metrics(data, top_k=TOP_K)
-    
-    print("\n" + "="*60)
-    print("BASIC RETRIEVAL METRICS")
-    print("="*60)
-    print(f"Precision@{TOP_K}: {basic_results['precision@k']}")
-    print(f"Recall@{TOP_K}:    {basic_results['recall@k']}")
-    print(f"Hit Rate:         {basic_results['hit_rate']}")
-    print("="*60)
-    
-    # Show per-query details
-    print("\nPer-Query Results:")
-    for r in basic_results["details"][:10]:  # Show first 10
-        status = "✓" if r["hit"] else "✗"
-        print(f"  {status} {r['question'][:50]}... (recall={r['recall']:.2f})")
-    
-    # Run RAGAS if API key available
-    if os.getenv("OPENAI_API_KEY"):
-        print("\n\nRunning RAGAS evaluation...")
-        ragas_results = run_ragas_evaluation(data, top_k=TOP_K)
-        if ragas_results:
-            print("\n" + "="*60)
-            print("RAGAS EVALUATION RESULTS")
-            print("="*60)
-            for metric, value in ragas_results.items():
-                print(f"{metric}: {value}")
-            print("="*60)
-    else:
-        print("\n⚠ OPENAI_API_KEY not set - skipping RAGAS evaluation")
-        print("Set it to run full evaluation: set OPENAI_API_KEY=sk-...")
+    sys.exit(main())

@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -r requirements-llm.txt
 
 COPY app ./app
-COPY vector_db ./vector_db
+RUN mkdir -p vector_db
 
 EXPOSE 8000
 

@@ -413,6 +413,8 @@ class ToolOrchestrator:
         self.appointment = AppointmentTool()
         self.weather = WeatherTool()
         self.cost = DentalCostTool()
+        # Captures the last dispatch's triggered tools (for evaluation hooks).
+        self.last_triggered_tools: List[str] = []
 
     # ── CRM helpers ────────────────────────────────────────────────────────
 
@@ -631,8 +633,11 @@ class ToolOrchestrator:
             triggered_tools.append("weather")
             context_parts.append(self.get_weather_context(user_input))
 
-        if triggered_tools:
-            print(f"[TOOLS] Triggered this turn: {', '.join(dict.fromkeys(triggered_tools))}")
+        # De-duplicate while preserving order.
+        unique_tools = list(dict.fromkeys(triggered_tools))
+        self.last_triggered_tools = unique_tools
+        if unique_tools:
+            print(f"[TOOLS] Triggered this turn: {', '.join(unique_tools)}")
         else:
             print("[TOOLS] Triggered this turn: none")
         return "\n".join(context_parts)
@@ -897,6 +902,11 @@ class ConversationManager:
         self.state = State.GREETING
         self.turn_count = 0
         self.total_tokens = 0
+        # Per-turn evaluation hooks.
+        self.last_tools_used: List[str] = []
+        self.last_rag_chunks: int = 0
+        self.last_intent: str = ""
+        self.last_used_llm: bool = False
         self.memory = ContextMemoryManager(
             token_counter=self.llm_engine.count_tokens,
             system_prompt=BASE_SYSTEM_PROMPT,
@@ -997,6 +1007,8 @@ class ConversationManager:
         # ── RAG retrieval ───────────────────────────────────────────────────
         retrieved_chunks = retrieve_relevant_chunks(user_input, top_k=3)
         retrieved_text = "\n".join(retrieved_chunks) if retrieved_chunks else ""
+        self.last_rag_chunks = len(retrieved_chunks) if retrieved_chunks else 0
+        self.last_intent = intent
         if retrieved_text:
             prompt += f"\n\n[KNOWLEDGE BASE CONTEXT]\n{retrieved_text}\n[END CONTEXT]"
             print(f"\n[RAG] Retrieved {len(retrieved_chunks)} chunks for: '{user_input[:50]}'")
@@ -1014,10 +1026,13 @@ class ConversationManager:
                 new_state=self.state,
                 slots=self.memory.slots,
             )
+            self.last_tools_used = list(self.orchestrator.last_triggered_tools)
             if tool_context:
                 prompt += f"\n\n[TOOL CONTEXT — ground your response in this data]\n{tool_context}"
                 print(f"[TOOLS] Context injected ({len(tool_context)} chars)")
                 print(f"[TOOLS] Context preview: {tool_context[:300]}")
+        else:
+            self.last_tools_used = []
 
         messages[0]["content"] = prompt
         messages = self._fit_messages_to_context(messages)
@@ -1048,6 +1063,7 @@ class ConversationManager:
 
         if self.llm_engine.enabled:
             print("[RESPONSE] Using LLM Engine")
+            self.last_used_llm = True
             try:
                 result = self.llm_engine.generate(messages)
                 reply = str(result.get("content", "")).strip()
@@ -1060,6 +1076,7 @@ class ConversationManager:
                 reply = self._fallback_reply(user_input, intent, tool_context)
         else:
             print("[RESPONSE] Using Fallback Engine (LLM not configured)")
+            self.last_used_llm = False
             reply = self._fallback_reply(user_input, intent, tool_context)
 
         print(f"[REPLY] {reply[:200]}...")
@@ -1245,11 +1262,20 @@ class ConversationSession:
     state: SessionState = SessionState.greeting
     turn_count: int = 0
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    # Per-turn evaluation hooks populated by DentaBotEngine.chat().
+    last_tools_used: List[str] = field(default_factory=list)
+    last_rag_chunks: int = 0
+    last_intent: str = ""
+    last_used_llm: bool = False
 
     def reset(self) -> None:
         self.history.clear()
         self.state = SessionState.greeting
         self.turn_count = 0
+        self.last_tools_used = []
+        self.last_rag_chunks = 0
+        self.last_intent = ""
+        self.last_used_llm = False
         self.updated_at = datetime.now(timezone.utc)
 
 
@@ -1293,6 +1319,13 @@ class DentaBotEngine:
 
         reply, phase_state = await asyncio.to_thread(manager.chat, user_message)
         session.state = _api_state(phase_state)
+
+        # Stash per-turn evaluation metadata on the session so HTTP/WS handlers
+        # can surface it without changing existing return signatures.
+        session.last_tools_used = list(manager.last_tools_used)
+        session.last_rag_chunks = manager.last_rag_chunks
+        session.last_intent = manager.last_intent
+        session.last_used_llm = manager.last_used_llm
 
         session.history.append({"role": "assistant", "content": reply})
         return reply

@@ -1,0 +1,28 @@
+# Evaluation suite dependencies (Phase 5 — Assignment 5).
+# Install on top of requirements.txt + requirements-llm.txt.
+
+# Core test runners
+pytest>=8.0.0
+
+# Performance + reporting
+locust>=2.20.0
+matplotlib>=3.8.0
+psutil>=5.9.0
+websockets>=12.0
+
+# RAG / LLM evaluation
+ragas>=0.1.7
+datasets>=2.16.0
+deepeval>=0.21.0
+
+# Tracing / external evaluator
+langsmith>=0.1.0
+
+# Judge LLM (Gemini)
+google-generativeai>=0.5.0
+langchain-google-genai>=1.0.0
+langchain-openai>=0.1.0
+langchain>=0.1.0
+
+# PDF text extraction (used by quick offline tools, optional)
+PyPDF2>=3.0.0

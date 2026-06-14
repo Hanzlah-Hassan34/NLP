@@ -31,13 +31,23 @@ Thumbs.db
 *.db
 *.sqlite3
 
+# Generated RAG indexes and local model artifacts
+vector_db/
+models/
+*.gguf
+*.onnx
+*.onnx.json
+
+# Generated evaluation/report artifacts
+evals/reports/*.json
+evals/reports/*.png
+evals/reports/*.docx
+evals/reports/*.pdf
+evals/reports/screenshots/
+evals/reports/~$*
+evals/Evaluation_Report.pdf
+
 # Build artifacts
 dist/
 build/
 *.egg-info/
-
-# Large model files (download separately)
-models/*.gguf
-models/piper/*.onnx
-models/piper/*.json
-vector_db/

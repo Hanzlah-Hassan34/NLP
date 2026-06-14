@@ -1,0 +1,6 @@
+dialogue_id,turn_idx,user_message,bot_reply,judge_task_completion,judge_policy_adherence,judge_coherence,human_task_completion,human_policy_adherence,human_coherence,notes
+# Instructions:
+# - This file is auto-populated by evals/run_all.py with judge_* columns filled in.
+# - Group members fill in human_task_completion (0/1), human_policy_adherence (0/1), human_coherence (0-5).
+# - At least 5-10 rows must be annotated for the agreement statistic to be meaningful.
+# - Save the file as UTF-8 CSV. Comments starting with '#' are ignored by the report generator.

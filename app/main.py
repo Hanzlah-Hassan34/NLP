@@ -83,6 +83,47 @@ async def chat_http(payload: HTTPChatRequest) -> HTTPChatResponse:
         )
 
 
+@app.post("/v1/eval/chat")
+async def eval_chat(payload: HTTPChatRequest) -> JSONResponse:
+    """Evaluation endpoint: same as /v1/chat but exposes per-turn metadata
+    (tools used, RAG chunks retrieved, intent, LLM vs fallback, server-side
+    latency) needed by the eval suite. Not used by the production UI.
+    """
+    import time
+    session = await store.get_or_create(payload.session_id)
+    async with session.lock:
+        t0 = time.perf_counter()
+        reply = await engine.chat(session, payload.message)
+        server_ms = int((time.perf_counter() - t0) * 1000)
+        return JSONResponse({
+            "session_id": session.session_id,
+            "reply": reply,
+            "state": session.state.value,
+            "turn_count": session.turn_count,
+            "tools_used": session.last_tools_used,
+            "rag_chunks": session.last_rag_chunks,
+            "intent": session.last_intent,
+            "used_llm": session.last_used_llm,
+            "server_ms": server_ms,
+            "backend": engine.backend,
+        })
+
+
+@app.post("/v1/eval/reset")
+async def eval_reset(payload: dict) -> JSONResponse:
+    """Reset a specific session for evaluation runs.
+    Body: {"session_id": "..."}.
+    """
+    session_id = str(payload.get("session_id") or "").strip()
+    if not session_id:
+        return JSONResponse(status_code=400, content={"detail": "session_id required"})
+    session = await store.get_or_create(session_id)
+    async with session.lock:
+        session.reset()
+        engine.reset_session(session.session_id)
+    return JSONResponse({"session_id": session.session_id, "status": "reset"})
+
+
 @app.post("/v1/voice/reply", response_model=HTTPVoiceResponse)
 async def voice_reply(
     session_id: str = Form(...),
